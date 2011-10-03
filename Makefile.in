@@ -50,7 +50,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_non_OBJECTS = main.$(OBJEXT) matrix.$(OBJEXT)
+am_non_OBJECTS = main.$(OBJEXT) matrix.$(OBJEXT) vect.$(OBJEXT)
 non_OBJECTS = $(am_non_OBJECTS)
 non_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@
@@ -170,7 +170,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-non_SOURCES = main.cpp matrix.cpp matrix.h
+non_SOURCES = main.cpp matrix.cpp matrix.h vect.h vect.cpp
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -276,6 +276,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/matrix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vect.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

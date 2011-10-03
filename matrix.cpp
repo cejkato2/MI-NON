@@ -5,16 +5,15 @@
 
 using namespace std;
 
-ostream &operator<<(ostream &os, Matrix &ia)
+ostream & operator<<(ostream & os, Matrix & ia)
 {
-        os << "Matrix" << endl;
-        os << "dim = " << ia.dim << endl;
+	os << "Matrix" << endl;
+	os << "dim = " << ia.dim << endl;
 	if (ia.data == NULL) {
 		return os;
 	}
 
-        uint32_t dim = ia.getDim();
-
+	uint32_t dim = ia.getDim();
 
 	for (int j = 0; j < dim; ++j) {
 		for (int i = 0; i < dim; ++i) {
@@ -28,7 +27,7 @@ ostream &operator<<(ostream &os, Matrix &ia)
 	return os;
 }
 
-istream &operator>>(istream &is, Matrix &ia)
+istream & operator>>(istream & is, Matrix & ia)
 {
 	uint32_t dim;
 	is >> dim;
@@ -38,10 +37,10 @@ istream &operator>>(istream &is, Matrix &ia)
 	ia.setDim(dim);
 	ia.reset();
 	for (uint32_t j = 0; j < dim; ++j) {
-          for (uint32_t i = 0; i < dim; ++i) {
-		is >> val;
-		ia.set(i, j, val);
-          }
+		for (uint32_t i = 0; i < dim; ++i) {
+			is >> val;
+			ia.set(i, j, val);
+		}
 	}
 
 	return is;
@@ -49,81 +48,87 @@ istream &operator>>(istream &is, Matrix &ia)
 
 Matrix Matrix::operator*(Matrix b)
 {
-  Matrix temp;
-  uint32_t dim = this->getDim();
+	Matrix temp;
+	uint32_t dim = this->getDim();
 
-  if (dim != b.getDim()) {
-    throw "Not implemented";
-  }
-  
-  temp.setDim(dim);
-  temp.reset();
+	if (dim != b.getDim()) {
+		throw "Not implemented";
+	}
 
-  for (int j=0; j<dim; ++j) {
-    for (int i=0; i<dim; ++i) {
-      temp.set(i, j , temp.at(i, j) + this->at(i,j) * b.at(j,i));
-    }
-  }
+	temp.setDim(dim);
+	temp.reset();
 
-  return temp;
+	for (int a = 0; a < dim; ++a) {
+		for (int j = 0; j < dim; ++j) {
+			for (int i = 0; i < dim; ++i) {
+				temp.set(a, j, temp.at(a, j)
+					 + b.at(a, i) * this->at(i, j));
+			}
+		}
+	}
+
+	return temp;
 }
 
 void Matrix::setDim(uint32_t newdim)
 {
-  this->dim = newdim;
-  delete[] this->data;
-  this->data = NULL;
+	this->dim = newdim;
+	delete[]this->data;
+	this->data = NULL;
 }
 
 uint32_t Matrix::getDim()
 {
-  return this->dim;
+	return this->dim;
 }
 
 void Matrix::set(uint32_t i, uint32_t j, double val)
 {
-  if ((j < dim) && (i < dim) && (this->data != NULL)) {
-    this->data[j * dim + i] = val;
-  } else {
-    throw "Bad index";
-  }
+	if ((j < dim) && (i < dim) && (this->data != NULL)) {
+		this->data[j * dim + i] = val;
+	} else {
+		throw "Bad index";
+	}
 }
 
 double Matrix::at(uint32_t i, uint32_t j)
 {
-  if ((j < dim) && (i < dim) && (this->data != NULL)) {
-    return this->data[j * dim + i];
-  } else {
-    throw "Bad index";
-  }
+	if ((j < dim) && (i < dim) && (this->data != NULL)) {
+		return this->data[j * dim + i];
+	} else {
+		throw "Bad index";
+	}
 }
 
 void Matrix::reset()
 {
-  if (this->data != NULL) {
-    delete[] this->data;
-    this->data = NULL;
-  }
-  if (this->dim > 0) {
-    uint64_t count = this->dim * this->dim;
-    this->data = new double[count];
-    for (uint64_t i=0; i<count; ++i) {
-      this->data[i] = 0;
-    }
-  }
+	if (this->data != NULL) {
+		delete[]this->data;
+		this->data = NULL;
+	}
+	if (this->dim > 0) {
+		uint64_t count = this->dim * this->dim;
+		this->data = new double[count + 1];
+		for (uint64_t i = 0; i < count; ++i) {
+			this->data[i] = 0;
+		}
+	}
 }
 
 Matrix::Matrix()
 {
-  this->dim = 0;
-  this->data = NULL;
+	this->dim = 0;
+	this->data = NULL;
 }
 
 Matrix::~Matrix()
 {
-  if (this->data != NULL) {
-    delete [] this->data;
-    this->data = NULL;
-  }
 }
 
+void Matrix::clean()
+{
+	if (this->data != NULL) {
+		delete[]this->data;
+		this->data = NULL;
+	}
+}
