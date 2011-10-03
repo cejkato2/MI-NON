@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 #include "vect.h"
 #include "matrix.h"
 
@@ -9,8 +10,7 @@ using namespace std;
 ostream & operator<<(ostream & os, Vector & ia)
 {
 	uint32_t dim = ia.getDim();
-	os << "Vector" << endl;
-	os << "dim = " << dim << endl;
+        cout << "(";
 	if (ia.data == NULL) {
 		return os;
 	}
@@ -18,10 +18,10 @@ ostream & operator<<(ostream & os, Vector & ia)
 	for (int i = 0; i < dim; ++i) {
 		os << ia.at(i);
 		if (i < (dim - 1)) {
-			os << " ";
+			os << ", ";
 		}
 	}
-	os << endl;
+	os << ")";
 	return os;
 }
 
@@ -42,9 +42,17 @@ istream & operator>>(istream & is, Vector & ia)
 	return is;
 }
 
-Vector Vector::operator*(Vector op2)
+/**
+ * scalar multiplication
+ */
+double Vector::operator*(Vector op2)
 {
-	throw "Not implemented";
+        double temp = 0;
+        uint32_t dim = this->getDim();
+        for (int i=0; i<dim; ++i) {
+          temp += this->at(i) * op2.at(i);
+        }
+        return temp;
 }
 
 Vector Vector::operator*(Matrix op2)
@@ -65,6 +73,20 @@ Vector Vector::operator*(Matrix op2)
 		}
 	}
 
+	return temp;
+}
+
+Vector Vector::operator-(Vector op2)
+{
+	Vector temp;
+	uint32_t dim = this->getDim();
+
+	temp.setDim(dim);
+	temp.reset();
+
+	for (int i = 0; i < dim; ++i) {
+		temp.set(i, this->at(i) - op2.at(i));
+	}
 	return temp;
 }
 
@@ -151,11 +173,22 @@ Vector::~Vector()
 {
 }
 
-void
- Vector::clean()
+void Vector::clean()
 {
 	if (this->data != NULL) {
 		delete[]this->data;
 		this->data = NULL;
 	}
 }
+
+double Vector::norm()
+{
+  double normal = 0;
+
+  for (int i=0; i<this->dim; ++i) {
+    normal += data[i] * data[i];
+  }
+  
+  return sqrt(normal);
+}
+

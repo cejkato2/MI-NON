@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "matrix.h"
+#include "vect.h"
 
 using namespace std;
 
@@ -68,6 +69,22 @@ Matrix Matrix::operator*(Matrix b)
 	}
 
 	return temp;
+}
+
+Vector Matrix::operator*(Vector op2)
+{
+  Vector temp;
+
+  uint32_t dim = this->getDim();
+  temp.setDim(dim);
+  temp.reset();
+  for (int i=0; i<dim; ++i) {
+    for (int j=0; j<dim; ++j) {
+      temp.set(i, temp.at(i) + this->at(i, j) * op2.at(j));
+    }
+  }
+
+  return temp;
 }
 
 void Matrix::setDim(uint32_t newdim)

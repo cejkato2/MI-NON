@@ -4,8 +4,11 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
+#include "vect.h"
 
 using namespace std;
+
+class Vector;
 
 class Matrix
 {
@@ -25,6 +28,7 @@ public:
   friend istream & operator>> (istream & is, Matrix & b);
   friend ostream & operator<< (ostream & os, Matrix & b);
   Matrix operator* (Matrix op2);
+  Vector operator* (Vector op2);
 };
 
 #endif
