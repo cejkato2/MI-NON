@@ -1,3 +1,5 @@
+#include <string.h>
+#include <getopt.h>
 #include <iostream>
 #include "matrix.h"
 #include "vect.h"
@@ -85,8 +87,9 @@ void solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
 
     rk.clean();
     rk = rk2;
-    cout << "Iterate Result: " << xk << " residuum: " << rk << endl;
-    if ((rk.norm() / bnorm) < epsilon) {
+    double rknorm = rk.norm();
+    cerr << "Iterate Result  norma residuum: " << rknorm << endl;
+    if ((rknorm / bnorm) < epsilon) {
       break;
     }
   }
@@ -161,8 +164,9 @@ void solve_steepest_descend(Matrix A, Vector b, double epsilon)
     r0.clean();
     rk.clean();
     rk = rk2;
-    cout << "Iterate Result: " << xk << " residuum: " << rk << endl;
-    if ((rk.norm() / bnorm) < epsilon) {
+    double rknorm = rk.norm();
+    cerr << "Iterate Result  residuum: " << rknorm << endl;
+    if ((rknorm / bnorm) < epsilon) {
       break;
     }
   }
@@ -176,37 +180,13 @@ int main(int argc, char **argv)
 {
 	Vector va, vb;
 	Matrix ma, mb, mc;
-	//cout << "enter matrix a" << endl;
-	//cin >> ma;
 
-	//cout << "End of input" << endl;
-	//cout << "enter matrix b" << endl;
-	//cin >> mb;
+        getopt
 
-	//cout << "End of input" << endl;
-	//cout << "enter vecor a" << endl;
-	//cin >> va;
-
-	//cout << ma << endl;
-	//cout << mb << endl;
-	//cout << va << endl;
-	//cout << "mc = ma * mb" << endl;
-	//mc = ma * mb;
-	//cout << mc << endl;
-
-	//vb = va * ma;
-
-	//cout << vb << endl;
-
-        //cout << "scalar mult: " << va << "*" << vb << " = " << va * vb << endl;
-        //vb.clean();
-        //vb = va * 2.0;
-        //cout << "scalar mult: " << vb << endl;
-
-	//mb.clean();
-	//mc.clean();
-	//va.clean();
-        //
+        if (argc == 1) {
+          cout << "./non sd|cg" << endl;
+          return 0;
+        }
 
         double epsilon;
         cin >> epsilon;
@@ -214,8 +194,11 @@ int main(int argc, char **argv)
         cin >> va;
 
         try {
-          solve_steepest_descend(ma, va, epsilon);
-          solve_conjugate_gradient(ma, va, epsilon);
+          if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
+            solve_steepest_descend(ma, va, epsilon);
+          } else {
+            solve_conjugate_gradient(ma, va, epsilon);
+          }
         } catch (const char *e) {
           cout << e << endl;
         }
