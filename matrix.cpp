@@ -185,17 +185,44 @@ Vector Matrix::operator*(Vector op2)
 
 	int nthreads;
 
+        if (this->is_cr == true) {
 #pragma omp parallel
 	{
 #pragma omp for schedule(static, 1000) private(i)
+		/* i iterates over rows */
 		for (int i = 0; i < dim; ++i) {
+			/* j iterates over columns */
+			for (int j = this->ci[this->addr[i]]; j < dim; ++j) {
+				temp.set(i,
+					 temp.at(i) + this->at(j,
+							       i) * op2.at(j));
+                                if (this->restIsNull(j, i) == true) {
+                                  /* rest is 0 increment */
+                                  break;
+                                }
+			}
+		}
+	}
+        } else {
+        /* matrix is not compressed */
+#pragma omp parallel
+	{
+#pragma omp for schedule(static, 1000) private(i)
+		/* i iterates over rows */
+		for (int i = 0; i < dim; ++i) {
+			/* j iterates over columns */
 			for (int j = 0; j < dim; ++j) {
 				temp.set(i,
 					 temp.at(i) + this->at(j,
 							       i) * op2.at(j));
+                                if (this->restIsNull(j, i) == true) {
+                                  /* rest is 0 increment */
+                                  break;
+                                }
 			}
 		}
 	}
+        }
 
 	return temp;
 }
@@ -212,16 +239,68 @@ uint32_t Matrix::getDim()
 	return this->dim;
 }
 
+/**
+ * @param i column
+ * @param j row
+ * @param val value
+ */
 void Matrix::set(uint32_t i, uint32_t j, double val)
 {
 	if (is_cr == true) {
-
+            throw "not implemented";
 	} else {
 		if ((j < dim) && (i < dim) && (this->data != NULL)) {
 			this->data[j * dim + i] = val;
 		} else {
 			throw "M set(): Bad index";
 		}
+	}
+}
+
+void Matrix::setCR(bool cr)
+{
+  this->is_cr = cr;
+}
+
+void Matrix::setNonzero(uint32_t nz)
+{
+  this->nonzero = nz;
+}
+
+void Matrix::genMatrix(double a, double b, double c)
+{
+  uint32_t coli = 0;
+  uint32_t data_index = 0;
+  uint32_t addr_index = 0;
+  this->nonzero = (this->dim - 2) * 2 + 2 * 2; // first and last row have only 2
+  this->reset();
+  
+  for (int i=0; i<this->dim; ++i) {
+    if (i > 0) {
+      //this->set(coli++, i, a);
+
+    }
+    //this->set(coli++, i, b); //b
+
+    if (i < (this->dim-1)) {
+      //this->set(coli++, i, c); //c
+    }
+  }
+}
+
+/**
+ * @param[in] i column
+ * @param[in] j row
+ * @return true if there are 0 to the end of line without column i
+ */
+bool Matrix::restIsNull(uint32_t i, uint32_t j)
+{
+	uint32_t end_row = this->addr[j + 1];
+	uint32_t col_endrow = this->ci[end_row - 1];
+	if (i > col_endrow) {
+		return true;
+	} else {
+		return false;
 	}
 }
 

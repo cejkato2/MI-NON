@@ -25,9 +25,13 @@ public:
   void load_cr(istream &is);
   void setDim (uint32_t newdim);
   uint32_t getDim ();
+  void setCR(bool cr);
+  void setNonzero(uint32_t nz);
   void set (uint32_t x, uint32_t y, double val);
   double at (uint32_t x, uint32_t y);
   bool getIsCR();
+  bool restIsNull(uint32_t i, uint32_t j);
+  void genMatrix(double a, double b, double c);
   void reset ();
   void clean ();
 
