@@ -1,8 +1,10 @@
 #include <string.h>
 #include <getopt.h>
 #include <iostream>
+#include <fstream>
 #include "matrix.h"
 #include "vect.h"
+#include <omp.h>
 
 using namespace std;
 
@@ -29,74 +31,83 @@ void solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
  *10) rk = rk2
  */
 
-  Vector r0;
-  Vector rk;
-  Vector rk2;
+	Vector r0;
+	Vector rk;
+	Vector rk2;
 
-  Vector x0;
-  Vector xk;
-  Vector xk2;
-  Vector s;
+	Vector x0;
+	Vector xk;
+	Vector xk2;
+	Vector s;
 
-  double al1, al2, alpha;
-  double bnorm = b.norm();
+	double al1, al2, alpha;
+	double bnorm = b.norm();
 
-  std::cout << "Conjugate gradient" << std::endl;
+	std::cout << "Conjugate gradient" << std::endl;
 
-  // 1)
-  xk.setDim(b.getDim());
-  xk.reset(); // alloc xk = (0, ..., 0)
+	// 1)
+	xk.setDim(b.getDim());
+	xk.reset();		// alloc xk = (0, ..., 0)
 
-  r0 = A * xk;
-  rk = b - r0;
-  r0.clean();
-  s = rk * 1.0;
+	r0 = A * xk;
+	rk = b - r0;
+	r0.clean();
+	s = rk * 1.0;
+	uint32_t count = 1;
 
-  while (true) {
-    // 5)
-    al1 = rk * rk;
-    r0 = A * s;
-    al2 = s * r0;
-    r0.clean();
-    alpha = al1 / al2;
+	while (true) {
+		// 5)
+		al1 = rk * rk;
+		r0 = A * s;
+		al2 = s * r0;
+		r0.clean();
+		alpha = al1 / al2;
 
-    // 6) xk2
-    x0 = s * alpha;
-    xk2 = x0 + xk;
-    x0.clean();
-    xk.clean();
-    xk = xk2;
+		// 6) xk2
+		x0 = s * alpha;
+		xk2 = x0 + xk;
+		x0.clean();
+		xk.clean();
+		xk = xk2;
 
-    // 7) rk2
-    rk2 = A * s;
-    r0 = rk2 * alpha;
-    rk2.clean();
-    rk2 = rk - r0;
-    r0.clean();
-   
-    // 8) beta
-    al1 = rk2 * rk2;
-    al2 = rk * rk;
-    alpha = al1 / al2;
+		// 7) rk2
+		rk2 = A * s;
+		r0 = rk2 * alpha;
+		rk2.clean();
+		rk2 = rk - r0;
+		r0.clean();
 
-    // 9) s2
-    r0 = s * alpha;
-    s.clean();
-    s = rk2 + r0;
-    r0.clean();
+		// 8) beta
+		al1 = rk2 * rk2;
+		al2 = rk * rk;
+		alpha = al1 / al2;
 
-    rk.clean();
-    rk = rk2;
-    double rknorm = rk.norm();
-    cerr << "Iterate Result  norma residuum: " << rknorm << endl;
-    if ((rknorm / bnorm) < epsilon) {
-      break;
-    }
-  }
+		// 9) s2
+		r0 = s * alpha;
+		s.clean();
+		s = rk2 + r0;
+		r0.clean();
 
-  cout << "Result: " << xk << " residuum: " << rk << endl;
-  xk.clean();
-  rk.clean();
+		rk.clean();
+		rk = rk2;
+		double rknorm = rk.norm();
+		cerr.width(6);
+		cerr.fill(' ');
+		cerr << count << ". Iteration |residuum|: " << rknorm << endl;
+		count++;
+
+		if ((rknorm / bnorm) < epsilon) {
+			break;
+		}
+		if (count > rk.getDim()) {
+			break;
+		}
+	}
+
+	cout << "Result: " << endl;
+	cout << xk << endl;	//<< " residuum: " << rk << endl;
+	xk.clean();
+	rk.clean();
 }
 
 void solve_steepest_descend(Matrix A, Vector b, double epsilon)
@@ -120,89 +131,144 @@ void solve_steepest_descend(Matrix A, Vector b, double epsilon)
  * 5) if (|rk+1| / |b| < E) break
  */
 
-  Vector r0;
-  Vector rk;
-  Vector rk2;
+	Vector r0;
+	Vector rk;
+	Vector rk2;
 
-  Vector x0;
-  Vector xk;
-  Vector xk2;
+	Vector x0;
+	Vector xk;
+	Vector xk2;
 
-  double al1, al2, alpha;
-  double bnorm = b.norm();
+	double al1, al2, alpha;
+	double bnorm = b.norm();
 
-  std::cout << "Steepest descend" << std::endl;
-  
-  // 1)
-  xk.setDim(b.getDim());
-  xk.reset(); // alloc xk = (0, ..., 0)
+	std::cout << "Steepest descend" << std::endl;
 
-  r0 = A * xk;
-  rk = b - r0;
-  r0.clean();
+	// 1)
+	xk.setDim(b.getDim());
+	xk.reset();		// alloc xk = (0, ..., 0)
 
-  while (true) {
-    // 2)
-    al1 = rk * rk;
-    r0 = A * rk;
-    al2 = rk * r0;
-    r0.clean();
-    alpha = al1 / al2;
+	r0 = A * xk;
+	rk = b - r0;
+	r0.clean();
 
-    // 3)
-    x0 = rk * alpha;
-    xk2 = x0 + xk;
-    xk.clean();
-    x0.clean();
-    xk = xk2;
+	while (true) {
+		// 2)
+		al1 = rk * rk;
+		r0 = A * rk;
+		al2 = rk * r0;
+		r0.clean();
+		alpha = al1 / al2;
 
-    // 4)
-    rk2 = A * rk;
-    r0 = rk2 * alpha;
-    rk2.clean();
-    rk2 = rk - r0;
-    r0.clean();
-    rk.clean();
-    rk = rk2;
-    double rknorm = rk.norm();
-    cerr << "Iterate Result  residuum: " << rknorm << endl;
-    if ((rknorm / bnorm) < epsilon) {
-      break;
-    }
-  }
+		// 3)
+		x0 = rk * alpha;
+		xk2 = x0 + xk;
+		xk.clean();
+		x0.clean();
+		xk = xk2;
 
-  cout << "Result: " << xk << " residuum: " << rk << endl;
-  xk.clean();
-  rk.clean();
+		// 4)
+		rk2 = A * rk;
+		r0 = rk2 * alpha;
+		rk2.clean();
+		rk2 = rk - r0;
+		r0.clean();
+		rk.clean();
+		rk = rk2;
+		double rknorm = rk.norm();
+		cerr << "Iterate Result  residuum: " << rknorm << endl;
+		if ((rknorm / bnorm) < epsilon) {
+			break;
+		}
+	}
+
+	cout << "Result: " << xk << " residuum: " << rk << endl;
+	xk.clean();
+	rk.clean();
 }
 
 int main(int argc, char **argv)
 {
-	Vector va, vb;
+	Vector va, vb, vres;
 	Matrix ma, mb, mc;
 
-        getopt
+	if (argc == 1) {
+		cout << "./non sd|cg" << endl;
+		return 0;
+	}
 
-        if (argc == 1) {
-          cout << "./non sd|cg" << endl;
-          return 0;
-        }
+	double epsilon = 0.0000000001;
+	//cin >> epsilon;
+	ifstream inputfile;
+	inputfile.open("../data/mat_cr_3630.txt");
+	ma.load_cr(inputfile);
+	inputfile.close();
 
-        double epsilon;
-        cin >> epsilon;
-        cin >> ma;
-        cin >> va;
+	inputfile.open("../data/vektor3630.txt");
+	inputfile >> va;
+	inputfile.close();
 
-        try {
-          if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
-            solve_steepest_descend(ma, va, epsilon);
-          } else {
-            solve_conjugate_gradient(ma, va, epsilon);
-          }
-        } catch (const char *e) {
-          cout << e << endl;
-        }
+	inputfile.open("../data/reseni3630.txt");
+	inputfile >> vres;
+	inputfile.close();
+
+	//for (int i=0; i<ma.getDim(); ++i) {
+	//  cout << i+1 << " " << ma.at(0, i) << endl;
+	//}
+
+	//for (int i=0; i<ma.getDim(); ++i) {
+	//  for (int j=0; j<ma.getDim(); ++j) {
+	//    double val = ma.at(j, i);
+	//    if (val != 0) {
+	//      cout << i+1 << " " << j+1 << " " << val << endl;
+	//    }
+	//  }
+	//}
+	//cout << ma.getDim() << endl;
+	//return 0;
+
+	try {
+		if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
+			solve_steepest_descend(ma, va, epsilon);
+		} else {
+			solve_conjugate_gradient(ma, va, epsilon);
+		}
+	}
+	catch(const char *e) {
+		cout << e << endl;
+	}
 	ma.clean();
+	vb = va - vres;
+	cout << "Deviation from result: " << vb.norm() << endl;
 	va.clean();
 	return 0;
 }
+
+//int main(int argc, char **argv)
+//{
+//      Vector va, vb;
+//      Matrix ma, mb, mc;
+//
+//        if (argc == 1) {
+//          cout << "./non sd|cg" << endl;
+//          return 0;
+//        }
+//
+//        double epsilon;
+//        cin >> epsilon;
+//        cin >> ma;
+//        cin >> va;
+//
+//        try {
+//          if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
+//            solve_steepest_descend(ma, va, epsilon);
+//          } else {
+//            solve_conjugate_gradient(ma, va, epsilon);
+//          }
+//        } catch (const char *e) {
+//          cout << e << endl;
+//        }
+//      ma.clean();
+//      va.clean();
+//      return 0;
+//}
