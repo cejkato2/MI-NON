@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
+Vector solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
 {
 /*
  * 1) x0
@@ -104,13 +104,12 @@ void solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
 		}
 	}
 
-	cout << "Result: " << endl;
-	cout << xk << endl;	//<< " residuum: " << rk << endl;
-	xk.clean();
-	rk.clean();
+	rk2.clean();
+	//rk.clean();
+        return xk;
 }
 
-void solve_steepest_descend(Matrix A, Vector b, double epsilon)
+Vector solve_steepest_descend(Matrix A, Vector b, double epsilon)
 {
 /*
  * 1) r0 = b - A * x0
@@ -182,64 +181,86 @@ void solve_steepest_descend(Matrix A, Vector b, double epsilon)
 		}
 	}
 
-	cout << "Result: " << xk << " residuum: " << rk << endl;
-	xk.clean();
-	rk.clean();
+        rk.clean();
+        return xk;
 }
 
+////time solver
+//int main(int argc, char **argv)
+//{
+//  double k, c, l, n;
+//  Vector z;
+//  Matrix mc, mk;
+//  
+//  cout << "Amount of parts n: ";
+//  cin >> n;
+//
+//  mc.setDim(n-1);
+//  mc.setCR(true);
+//  mk.setDim(n-1);
+//  mk.setCR(true);
+//
+//  mk.genMatrix(-1, 2, -1);
+//  mk.genMatrix(1/6.0, 4/6.0, 1/6.0);
+//  
+//
+//  return 0;
+//}
+
+//CR
 int main(int argc, char **argv)
 {
 	Vector va, vb, vres;
 	Matrix ma, mb, mc;
 
-	if (argc == 1) {
-		cout << "./non sd|cg" << endl;
+	if (argc != 5) {
+		cout << "./non sd|cg <matrix_file> <vector_file> <result_file>" << endl;
 		return 0;
 	}
 
 	double epsilon = 0.0000000001;
-	//cin >> epsilon;
+	cout << "Epsilon: ";
+	cin >> epsilon;
 	ifstream inputfile;
-	inputfile.open("../data/mat_cr_3630.txt");
+	//inputfile.open("../data/mat_cr_3630.txt");
+	inputfile.open(argv[2]);
 	ma.load_cr(inputfile);
 	inputfile.close();
 
-	inputfile.open("../data/vektor3630.txt");
+	//inputfile.open("../data/vektor3630.txt");
+	inputfile.open(argv[3]);
 	inputfile >> va;
 	inputfile.close();
 
-	inputfile.open("../data/reseni3630.txt");
-	inputfile >> vres;
-	inputfile.close();
-
-	//for (int i=0; i<ma.getDim(); ++i) {
-	//  cout << i+1 << " " << ma.at(0, i) << endl;
-	//}
-
-	//for (int i=0; i<ma.getDim(); ++i) {
-	//  for (int j=0; j<ma.getDim(); ++j) {
-	//    double val = ma.at(j, i);
-	//    if (val != 0) {
-	//      cout << i+1 << " " << j+1 << " " << val << endl;
-	//    }
-	//  }
-	//}
-	//cout << ma.getDim() << endl;
-	//return 0;
 
 	try {
 		if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
-			solve_steepest_descend(ma, va, epsilon);
+			vres = solve_steepest_descend(ma, va, epsilon);
 		} else {
-			solve_conjugate_gradient(ma, va, epsilon);
+			vres = solve_conjugate_gradient(ma, va, epsilon);
 		}
+
+                cerr << "Result: " << endl;
+                cerr << vres << endl;	//<< " residuum: " << rk << endl;
+
+                vb.clean();
+                va.clean();
+                ifstream inputfile;
+                inputfile.open(argv[4]);
+                if (inputfile.good() == true) {
+                  inputfile >> vb;
+                  inputfile.close();
+                  va = vb - vres;
+                  cout << "Deviation from result: " << va.norm() << endl;
+                  va.clean();
+                  vb.clean();
+                }
+                vres.clean();
 	}
 	catch(const char *e) {
 		cout << e << endl;
 	}
 	ma.clean();
-	vb = va - vres;
-	cout << "Deviation from result: " << vb.norm() << endl;
 	va.clean();
 	return 0;
 }
