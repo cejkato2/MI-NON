@@ -43,7 +43,7 @@ Vector solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
 	double al1, al2, alpha;
 	double bnorm = b.norm();
 
-	std::cout << "Conjugate gradient" << std::endl;
+	std::cerr << "Conjugate gradient" << std::endl;
 
 	// 1)
 	xk.setDim(b.getDim());
@@ -106,7 +106,7 @@ Vector solve_conjugate_gradient(Matrix A, Vector b, double epsilon)
 
 	rk2.clean();
 	//rk.clean();
-        return xk;
+	return xk;
 }
 
 Vector solve_steepest_descend(Matrix A, Vector b, double epsilon)
@@ -181,32 +181,104 @@ Vector solve_steepest_descend(Matrix A, Vector b, double epsilon)
 		}
 	}
 
-        rk.clean();
-        return xk;
+	rk.clean();
+	return xk;
 }
 
-////time solver
-//int main(int argc, char **argv)
-//{
-//  double k, c, l, n;
-//  Vector z;
-//  Matrix mc, mk;
-//  
-//  cout << "Amount of parts n: ";
-//  cin >> n;
-//
-//  mc.setDim(n-1);
-//  mc.setCR(true);
-//  mk.setDim(n-1);
-//  mk.setCR(true);
-//
-//  mk.genMatrix(-1, 2, -1);
-//  mk.genMatrix(1/6.0, 4/6.0, 1/6.0);
-//  
-//
-//  return 0;
-//}
+#define TIMESOLVER
+#ifdef TIMESOLVER
+//time solver
+int main(int argc, char **argv)
+{
+	double k, c, l, n, alpha, t;
+	Vector d0, d1, f, v0, v1;
+	Vector pom, pom2, vpom;
+	Matrix mc, mk, ma, ma2;
+	uint32_t countiteration = 20;
 
+	cerr << "Amount of parts n: ";
+	cin >> n;
+	cerr << "Time step: ";
+	cin >> t;
+	cerr << "Alpha: ";
+	cin >> alpha;
+
+	mc.setDim(n - 1);
+	mk.setDim(n - 1);
+
+	mk.genMatrix(1, 2, 1);
+	mc.genMatrix(1 / 6.0, 4 / 6.0, 1 / 6.0);
+
+	f.setDim(n - 1);
+	d0.setDim(n - 1);
+	v0.setDim(n - 1);
+	f.reset();
+	d0.reset1();
+	v0.reset();
+
+	for (uint32_t itk = 0; itk < countiteration; ++itk) {
+		/* pom = f - K * (d + t * (1 - alpha) * v) */
+		v1 = v0 * (t * (1 - alpha));
+		vpom = d0 + v1;
+		pom2 = mk * vpom;
+		if (itk == 4) {
+			f.set(10, 10E29);
+		} else if (itk == 5) {
+			f.set(10, 0);
+		} else {
+			cerr << f.at(1) << " ";
+		}
+		pom = f - pom2;
+		pom2.clean();
+		vpom.clean();
+		v1.clean();
+
+		/* A = C + t * alpha * K */
+
+		ma2 = mk * (t * alpha);
+		ma = mc + ma2;
+		ma2.clean();
+
+		//cout << ma;
+		//cout << pom;
+		v1 = solve_conjugate_gradient(ma, pom, 0.0001);
+		cout << v1;
+		if (itk < countiteration) {
+			cout << endl;
+		}
+		pom.clean();
+		ma.clean();
+
+		/* vk+a = (1 - alpha) * vk + alpha * vk+1 */
+		pom2 = v0 * (1 - alpha);
+		vpom = v1 * alpha;
+		pom = pom2 + vpom;
+		vpom.clean();
+		pom2.clean();
+
+		/* dk+1 = dk + t * vk+a */
+		vpom = pom * t;
+		d1 = d0 + vpom;
+		vpom.clean();
+		pom.clean();
+
+		/* move to next iteration */
+		d0.clean();
+		d0 = d1;
+		v0.clean();
+		v0 = v1;
+
+	}
+
+	f.clean();
+	d0.clean();
+	v0.clean();
+	mk.clean();
+	mc.clean();
+
+	return 0;
+}
+#else
 //CR
 int main(int argc, char **argv)
 {
@@ -214,7 +286,8 @@ int main(int argc, char **argv)
 	Matrix ma, mb, mc;
 
 	if (argc != 5) {
-		cout << "./non sd|cg <matrix_file> <vector_file> <result_file>" << endl;
+		cout << "./non sd|cg <matrix_file> <vector_file> <result_file>"
+		    << endl;
 		return 0;
 	}
 
@@ -232,7 +305,6 @@ int main(int argc, char **argv)
 	inputfile >> va;
 	inputfile.close();
 
-
 	try {
 		if (strncmp(argv[1], "sd", sizeof("sd")) == 0) {
 			vres = solve_steepest_descend(ma, va, epsilon);
@@ -240,22 +312,22 @@ int main(int argc, char **argv)
 			vres = solve_conjugate_gradient(ma, va, epsilon);
 		}
 
-                cerr << "Result: " << endl;
-                cerr << vres << endl;	//<< " residuum: " << rk << endl;
+		cerr << "Result: " << endl;
+		cerr << vres << endl;	//<< " residuum: " << rk << endl;
 
-                vb.clean();
-                va.clean();
-                ifstream inputfile;
-                inputfile.open(argv[4]);
-                if (inputfile.good() == true) {
-                  inputfile >> vb;
-                  inputfile.close();
-                  va = vb - vres;
-                  cout << "Deviation from result: " << va.norm() << endl;
-                  va.clean();
-                  vb.clean();
-                }
-                vres.clean();
+		vb.clean();
+		va.clean();
+		ifstream inputfile;
+		inputfile.open(argv[4]);
+		if (inputfile.good() == true) {
+			inputfile >> vb;
+			inputfile.close();
+			va = vb - vres;
+			cout << "Deviation from result: " << va.norm() << endl;
+			va.clean();
+			vb.clean();
+		}
+		vres.clean();
 	}
 	catch(const char *e) {
 		cout << e << endl;
@@ -264,6 +336,7 @@ int main(int argc, char **argv)
 	va.clean();
 	return 0;
 }
+#endif
 
 //int main(int argc, char **argv)
 //{

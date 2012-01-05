@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include "matrix.h"
 #include "vect.h"
 #include <omp.h>
@@ -55,10 +56,6 @@ void Matrix::load_cr(istream & is)
 			is >> row;
 			is >> column;
 			is >> val;
-			if (data_index == nonzero - 1) {
-				cout << "row " << row << " col " << column <<
-				    " val " << val << endl;
-			}
 			if (prev_row != row) {
 				/* beginning of the new row */
 				this->addr[addr_index++] = data_index;
@@ -185,44 +182,47 @@ Vector Matrix::operator*(Vector op2)
 
 	int nthreads;
 
-        if (this->is_cr == true) {
+	if (this->is_cr == true) {
 #pragma omp parallel
-	{
+		{
 #pragma omp for schedule(static, 1000) private(i)
-		/* i iterates over rows */
-		for (int i = 0; i < dim; ++i) {
-			/* j iterates over columns */
-			for (int j = this->ci[this->addr[i]]; j < dim; ++j) {
-				temp.set(i,
-					 temp.at(i) + this->at(j,
-							       i) * op2.at(j));
-                                if (this->restIsNull(j, i) == true) {
-                                  /* rest is 0 increment */
-                                  break;
-                                }
+			/* i iterates over rows */
+			for (int i = 0; i < dim; ++i) {
+				/* j iterates over columns */
+				for (int j = this->ci[this->addr[i]]; j < dim;
+				     ++j) {
+					temp.set(i,
+						 temp.at(i) + this->at(j,
+								       i) *
+						 op2.at(j));
+					if (this->restIsNull(j, i) == true) {
+						/* rest is 0 increment */
+						break;
+					}
+				}
+			}
+		}
+	} else {
+		/* matrix is not compressed */
+#pragma omp parallel
+		{
+#pragma omp for schedule(static, 1000) private(i)
+			/* i iterates over rows */
+			for (int i = 0; i < dim; ++i) {
+				/* j iterates over columns */
+				for (int j = 0; j < dim; ++j) {
+					temp.set(i,
+						 temp.at(i) + this->at(j,
+								       i) *
+						 op2.at(j));
+					if (this->restIsNull(j, i) == true) {
+						/* rest is 0 increment */
+						break;
+					}
+				}
 			}
 		}
 	}
-        } else {
-        /* matrix is not compressed */
-#pragma omp parallel
-	{
-#pragma omp for schedule(static, 1000) private(i)
-		/* i iterates over rows */
-		for (int i = 0; i < dim; ++i) {
-			/* j iterates over columns */
-			for (int j = 0; j < dim; ++j) {
-				temp.set(i,
-					 temp.at(i) + this->at(j,
-							       i) * op2.at(j));
-                                if (this->restIsNull(j, i) == true) {
-                                  /* rest is 0 increment */
-                                  break;
-                                }
-			}
-		}
-	}
-        }
 
 	return temp;
 }
@@ -247,7 +247,7 @@ uint32_t Matrix::getDim()
 void Matrix::set(uint32_t i, uint32_t j, double val)
 {
 	if (is_cr == true) {
-            throw "not implemented";
+		throw "not implemented";
 	} else {
 		if ((j < dim) && (i < dim) && (this->data != NULL)) {
 			this->data[j * dim + i] = val;
@@ -259,33 +259,43 @@ void Matrix::set(uint32_t i, uint32_t j, double val)
 
 void Matrix::setCR(bool cr)
 {
-  this->is_cr = cr;
+	this->is_cr = cr;
 }
 
 void Matrix::setNonzero(uint32_t nz)
 {
-  this->nonzero = nz;
+	this->nonzero = nz;
 }
 
 void Matrix::genMatrix(double a, double b, double c)
 {
-  uint32_t coli = 0;
-  uint32_t data_index = 0;
-  uint32_t addr_index = 0;
-  this->nonzero = (this->dim - 2) * 2 + 2 * 2; // first and last row have only 2
-  this->reset();
-  
-  for (int i=0; i<this->dim; ++i) {
-    if (i > 0) {
-      //this->set(coli++, i, a);
+	uint32_t coli = 0;
+	uint32_t data_index = 0;
+	uint32_t addr_index = 0;
+	this->is_cr = true;
+	// first and last row have only 2
+	this->nonzero = (this->dim - 2) * 3 + 5;
+	this->reset();
 
-    }
-    //this->set(coli++, i, b); //b
+	for (uint32_t i = 0; i < this->dim; ++i) {
+		//iterate over rows
+		coli = i - 1;
+		addr[addr_index++] = data_index;
+		if (i > 0) {
+			ci[data_index] = coli;
+			data[data_index] = a;
+			data_index++;
+		}
+		coli++;
+		ci[data_index] = coli++;
+		data[data_index] = b;
+		data_index++;
 
-    if (i < (this->dim-1)) {
-      //this->set(coli++, i, c); //c
-    }
-  }
+		ci[data_index] = coli;
+		data[data_index] = c;
+		data_index++;
+	}
+	this->addr[this->dim] = nonzero;
 }
 
 /**
@@ -295,7 +305,12 @@ void Matrix::genMatrix(double a, double b, double c)
  */
 bool Matrix::restIsNull(uint32_t i, uint32_t j)
 {
+	//(+1) get index of the start of next row
 	uint32_t end_row = this->addr[j + 1];
+	if (end_row > (nonzero + 1)) {
+		cout << "end_row: " << end_row << endl;
+		//throw "out of range";
+	}
 	uint32_t col_endrow = this->ci[end_row - 1];
 	if (i > col_endrow) {
 		return true;
@@ -387,4 +402,101 @@ void Matrix::clean()
 		delete[]this->ci;
 		this->ci = NULL;
 	}
+}
+
+Matrix Matrix::operator*(double op1)
+{
+	Matrix temp;
+	if (this->is_cr == true) {
+		temp.setCR(true);
+		temp.copyCR(this->dim, this->nonzero, this->data, this->addr,
+			    this->ci);
+	} else {
+		temp.setCR(false);
+	}
+	temp.multiply(op1);
+	return temp;
+}
+
+void Matrix::copyCR(uint32_t dim, uint32_t nonzero, const double *data,
+		    const uint32_t * addr, const uint32_t * ci)
+{
+	if (this->is_cr == true) {
+		this->clean();
+		this->dim = dim;
+		this->nonzero = nonzero;
+		this->reset();
+		this->data =
+		    (double *)memcpy((void *)this->data, (void *)data,
+				     nonzero * sizeof(data[0]));
+		this->ci =
+		    (uint32_t *) memcpy((void *)this->ci, (void *)ci,
+					nonzero * sizeof(*ci));
+		this->addr =
+		    (uint32_t *) memcpy((void *)this->addr, (void *)addr,
+					(dim + 1) * sizeof(*addr));
+	} else {
+		throw "Target is not CR matrix";
+	}
+
+}
+
+void Matrix::multiply(double op1)
+{
+	if (this->is_cr == true) {
+		for (uint32_t i = 0; i < this->nonzero; ++i) {
+			this->data[i] *= op1;
+		}
+	} else {
+		for (uint32_t i = 0; i < (this->dim * this->dim); ++i) {
+			this->data[i] *= op1;
+		}
+	}
+}
+
+Matrix Matrix::operator+(Matrix op1)
+{
+	Matrix temp;
+	if (this->is_cr == true) {
+		temp.setCR(true);
+		temp.copyCR(op1.getDim(), op1.getNonzero(), op1.getData(),
+			    op1.getAddr(), op1.getCi());
+	} else {
+		temp.setCR(false);
+	}
+	temp.add(op1.getData());
+	return temp;
+}
+
+const double *Matrix::getData()
+{
+	return this->data;
+}
+
+void Matrix::add(const double *op1)
+{
+	if (this->is_cr == true) {
+		for (uint32_t i = 0; i < this->nonzero; ++i) {
+			this->data[i] += op1[i];
+		}
+	} else {
+		for (uint32_t i = 0; i < (this->dim * this->dim); ++i) {
+			this->data[i] += op1[i];
+		}
+	}
+}
+
+uint32_t Matrix::getNonzero()
+{
+	return this->nonzero;
+}
+
+const uint32_t *Matrix::getAddr()
+{
+	return this->addr;
+}
+
+const uint32_t *Matrix::getCi()
+{
+	return this->ci;
 }

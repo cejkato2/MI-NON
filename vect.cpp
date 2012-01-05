@@ -11,15 +11,14 @@ using namespace std;
 ostream & operator<<(ostream & os, Vector & ia)
 {
 	uint32_t dim = ia.getDim();
-	cout << "(";
 	if (ia.data == NULL) {
 		return os;
 	}
 
 	for (int i = 0; i < dim; ++i) {
-		os << ia.at(i) << endl;
+		os << ia.at(i) << " ";
 	}
-	os << ")";
+	//os << endl;
 	return os;
 }
 
@@ -169,6 +168,14 @@ void Vector::reset()
 		for (uint64_t i = 0; i < this->dim; ++i) {
 			this->data[i] = 0;
 		}
+	}
+}
+
+void Vector::reset1()
+{
+	reset();
+	for (uint32_t i = 0; i < dim; ++i) {
+		data[i] = 1;
 	}
 }
 
